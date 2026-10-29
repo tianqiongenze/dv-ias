@@ -1,0 +1,20 @@
+# DV-IAS 1亿行测试数据生成 Job（详见 scripts/bulk-gen.sh）
+apiVersion: batch/v1
+kind: Job
+metadata: {name: bulk-gen3, namespace: szxc-prod}
+spec:
+  backoffLimit: 1
+  template:
+    metadata: {labels: {app: bulk-gen3}}
+    spec:
+      restartPolicy: Never
+      priorityClassName: szxc-batch
+      containers:
+      - name: gen
+        image: 10.167.2.175:30500/szxc/base:1.2
+        command: ["python", "/srv/bgen.py"]
+        volumeMounts: [{name: script, mountPath: /srv/bgen.py, subPath: bgen.py}]
+        resources: {requests: {cpu: "2", memory: 1Gi}, limits: {cpu: "4", memory: 4Gi}}
+      volumes:
+      - name: script
+        configMap: {name: bgen-script}

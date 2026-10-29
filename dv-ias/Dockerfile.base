@@ -1,0 +1,7 @@
+# DV-IAS 公共基础镜像（一次构建，所有服务复用）
+FROM 10.167.2.175:30500/base/python:3.13-slim
+ENV PYTHONUNBUFFERED=1 PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/
+WORKDIR /srv
+COPY requirements-base.txt .
+RUN pip install --no-cache-dir -r requirements-base.txt
+EXPOSE 8080

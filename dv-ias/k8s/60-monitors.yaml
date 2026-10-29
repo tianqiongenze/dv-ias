@@ -1,0 +1,13 @@
+# DV-IAS 监控接入：ServiceMonitor（Prometheus抓取 /metrics）
+# 注意：label 需与 kube-prometheus-stack 的 serviceMonitorSelector 匹配（部署时校验）
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: szxc-services
+  namespace: szxc-prod
+  labels: {release: kube-prometheus-stack, app: szxc}
+spec:
+  namespaceSelector: {matchNames: [szxc-prod]}
+  selector: {matchLabels: {metrics: "true"}}
+  endpoints: [{port: http-metrics, path: /metrics, interval: 30s}]

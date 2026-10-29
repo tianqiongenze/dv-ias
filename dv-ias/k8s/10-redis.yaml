@@ -1,0 +1,94 @@
+# DV-IAS 独立 Redis Cluster（3主，Redis 8 hostname 模式广播）
+apiVersion: v1
+kind: Secret
+metadata:
+  name: szxc-secrets
+  namespace: infra
+type: Opaque
+stringData:
+  REDIS_PASS: SzxcRedis-2026-tR5yJ2hL
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: szxc-redis-h
+  namespace: infra
+spec:
+  clusterIP: None
+  selector:
+    app: szxc-redis
+  ports:
+  - name: client
+    port: 6379
+    targetPort: 6379
+  - name: bus
+    port: 16379
+    targetPort: 16379
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: szxc-redis
+  namespace: infra
+spec:
+  serviceName: szxc-redis-h
+  replicas: 3
+  selector:
+    matchLabels:
+      app: szxc-redis
+  template:
+    metadata:
+      labels:
+        app: szxc-redis
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              topologyKey: kubernetes.io/hostname
+              labelSelector:
+                matchLabels:
+                  app: szxc-redis
+      containers:
+      - name: redis
+        image: 10.167.2.175:30500/base/redis:8-alpine
+        command: ["/bin/sh", "-c"]
+        args:
+        - >
+          exec redis-server
+          --cluster-enabled yes
+          --cluster-config-file /data/nodes.conf
+          --cluster-announce-hostname "${HOSTNAME}.szxc-redis-h.infra.svc.cluster.local"
+          --cluster-announce-port 6379
+          --cluster-announce-bus-port 16379
+          --cluster-preferred-endpoint-type hostname
+          --requirepass "$(REDIS_PASS)"
+          --masterauth "$(REDIS_PASS)"
+          --maxmemory 1gb
+          --maxmemory-policy allkeys-lru
+          --appendonly yes
+          --protected-mode no
+        env:
+        - name: REDIS_PASS
+          valueFrom:
+            secretKeyRef:
+              name: szxc-secrets
+              key: REDIS_PASS
+        ports:
+        - containerPort: 6379
+        - containerPort: 16379
+        resources:
+          requests: {cpu: 250m, memory: 512Mi}
+          limits: {cpu: "1", memory: 2Gi}
+        readinessProbe:
+          exec:
+            command: ["/bin/sh", "-c", "redis-cli -a $REDIS_PASS ping | grep PONG"]
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        emptyDir: {}   # 缓存可重建；Pod 重启后由 scripts/rebuild-redis-cluster.sh 重建槽位

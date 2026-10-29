@@ -1,0 +1,304 @@
+# DV-IAS 应用层：网关 + 7服务 + Web（命名空间 szxc-prod）
+# 镜像统一来自集群私有仓库 10.167.2.175:30500/szxc/*
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: gw, namespace: szxc-prod, labels: {app: gw}}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: gw}}
+  template:
+    metadata: {labels: {app: gw}}
+    spec:
+      priorityClassName: szxc-critical
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm: {topologyKey: kubernetes.io/hostname, labelSelector: {matchLabels: {app: gw}}}
+      containers:
+      - name: gw
+        image: 10.167.2.175:30500/szxc/gw:1.5
+        ports: [{containerPort: 8080}, {containerPort: 8081}]
+        env:
+        - {name: JWT_SECRET, valueFrom: {secretKeyRef: {name: szxc-secrets, key: JWT_SECRET}}}
+        - {name: INTROSPECTION, value: "true"}
+        resources: {requests: {cpu: 200m, memory: 256Mi}, limits: {cpu: "2", memory: 1Gi}}
+        readinessProbe: {httpGet: {path: /healthz, port: 8081}, periodSeconds: 5}
+        livenessProbe: {httpGet: {path: /healthz, port: 8081}, initialDelaySeconds: 20, periodSeconds: 10}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: gw-svc, namespace: szxc-prod, labels: {app: gw-svc, metrics: "true"}}
+spec:
+  type: NodePort
+  selector: {app: gw}
+  ports: [{name: http-metrics, port: 8080, targetPort: 8080, nodePort: 30085}]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: gw-hpa, namespace: szxc-prod}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: gw}
+  minReplicas: 2
+  maxReplicas: 6
+  metrics:
+  - type: Resource
+    resource: {name: cpu, target: {type: Utilization, averageUtilization: 60}}
+---
+# ─── 通用服务模板展开（iam/portal/governance/points/data/mcp/agent）───
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: iam-svc, namespace: szxc-prod, labels: {app: iam-svc}}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: iam-svc}}
+  template:
+    metadata: {labels: {app: iam-svc}}
+    spec:
+      priorityClassName: szxc-critical
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm: {topologyKey: kubernetes.io/hostname, labelSelector: {matchLabels: {app: iam-svc}}}
+      containers:
+      - name: app
+        image: 10.167.2.175:30500/szxc/iam:1.7
+        ports: [{containerPort: 8081}]
+        envFrom: [{secretRef: {name: szxc-secrets}}]
+        resources: {requests: {cpu: 300m, memory: 512Mi}, limits: {cpu: "2", memory: 2Gi}}
+        readinessProbe: {httpGet: {path: /readyz, port: 8081}, periodSeconds: 5, failureThreshold: 3}
+        livenessProbe: {httpGet: {path: /healthz, port: 8081}, initialDelaySeconds: 15, periodSeconds: 10}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: iam-svc, namespace: szxc-prod, labels: {app: iam-svc, metrics: "true"}}
+spec: {selector: {app: iam-svc}, ports: [{name: http-metrics, port: 8081, targetPort: 8081}]}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: iam-hpa, namespace: szxc-prod}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: iam-svc}
+  minReplicas: 2
+  maxReplicas: 6
+  metrics: [{type: Resource, resource: {name: cpu, target: {type: Utilization, averageUtilization: 60}}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: portal-svc, namespace: szxc-prod, labels: {app: portal-svc}}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: portal-svc}}
+  template:
+    metadata: {labels: {app: portal-svc}}
+    spec:
+      priorityClassName: szxc-normal
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm: {topologyKey: kubernetes.io/hostname, labelSelector: {matchLabels: {app: portal-svc}}}
+      containers:
+      - name: app
+        image: 10.167.2.175:30500/szxc/portal:1.8
+        ports: [{containerPort: 8082}]
+        envFrom: [{secretRef: {name: szxc-secrets}}]
+        resources: {requests: {cpu: 200m, memory: 384Mi}, limits: {cpu: "1", memory: 1Gi}}
+        readinessProbe: {httpGet: {path: /readyz, port: 8082}, periodSeconds: 5}
+        livenessProbe: {httpGet: {path: /healthz, port: 8082}, initialDelaySeconds: 15, periodSeconds: 10}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: portal-svc, namespace: szxc-prod, labels: {app: portal-svc, metrics: "true"}}
+spec: {selector: {app: portal-svc}, ports: [{name: http-metrics, port: 8082, targetPort: 8082}]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: governance-svc, namespace: szxc-prod, labels: {app: governance-svc}}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: governance-svc}}
+  template:
+    metadata: {labels: {app: governance-svc}}
+    spec:
+      priorityClassName: szxc-critical
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm: {topologyKey: kubernetes.io/hostname, labelSelector: {matchLabels: {app: governance-svc}}}
+      containers:
+      - name: app
+        image: 10.167.2.175:30500/szxc/governance:1.7
+        ports: [{containerPort: 8083}]
+        envFrom: [{secretRef: {name: szxc-secrets}}]
+        resources: {requests: {cpu: 300m, memory: 512Mi}, limits: {cpu: "2", memory: 2Gi}}
+        readinessProbe: {httpGet: {path: /readyz, port: 8083}, periodSeconds: 5}
+        livenessProbe: {httpGet: {path: /healthz, port: 8083}, initialDelaySeconds: 15, periodSeconds: 10}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: governance-svc, namespace: szxc-prod, labels: {app: governance-svc, metrics: "true"}}
+spec: {selector: {app: governance-svc}, ports: [{name: http-metrics, port: 8083, targetPort: 8083}]}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: {name: governance-hpa, namespace: szxc-prod}
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: governance-svc}
+  minReplicas: 2
+  maxReplicas: 6
+  metrics: [{type: Resource, resource: {name: cpu, target: {type: Utilization, averageUtilization: 60}}}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: points-svc, namespace: szxc-prod, labels: {app: points-svc}}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: points-svc}}
+  template:
+    metadata: {labels: {app: points-svc}}
+    spec:
+      priorityClassName: szxc-normal
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm: {topologyKey: kubernetes.io/hostname, labelSelector: {matchLabels: {app: points-svc}}}
+      containers:
+      - name: app
+        image: 10.167.2.175:30500/szxc/points:1.7
+        ports: [{containerPort: 8084}]
+        envFrom: [{secretRef: {name: szxc-secrets}}]
+        resources: {requests: {cpu: 200m, memory: 384Mi}, limits: {cpu: "1", memory: 1Gi}}
+        readinessProbe: {httpGet: {path: /readyz, port: 8084}, periodSeconds: 5}
+        livenessProbe: {httpGet: {path: /healthz, port: 8084}, initialDelaySeconds: 15, periodSeconds: 10}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: points-svc, namespace: szxc-prod, labels: {app: points-svc, metrics: "true"}}
+spec: {selector: {app: points-svc}, ports: [{name: http-metrics, port: 8084, targetPort: 8084}]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: data-svc, namespace: szxc-prod, labels: {app: data-svc}}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: data-svc}}
+  template:
+    metadata: {labels: {app: data-svc}}
+    spec:
+      priorityClassName: szxc-normal
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm: {topologyKey: kubernetes.io/hostname, labelSelector: {matchLabels: {app: data-svc}}}
+      containers:
+      - name: app
+        image: 10.167.2.175:30500/szxc/data:1.7
+        ports: [{containerPort: 8085}]
+        envFrom: [{secretRef: {name: szxc-secrets}}]
+        resources: {requests: {cpu: 200m, memory: 384Mi}, limits: {cpu: "1", memory: 1Gi}}
+        readinessProbe: {httpGet: {path: /readyz, port: 8085}, periodSeconds: 5}
+        livenessProbe: {httpGet: {path: /healthz, port: 8085}, initialDelaySeconds: 15, periodSeconds: 10}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: data-svc, namespace: szxc-prod, labels: {app: data-svc, metrics: "true"}}
+spec: {selector: {app: data-svc}, ports: [{name: http-metrics, port: 8085, targetPort: 8085}]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: mcp-svc, namespace: szxc-prod, labels: {app: mcp-svc}}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: mcp-svc}}
+  template:
+    metadata: {labels: {app: mcp-svc}}
+    spec:
+      priorityClassName: szxc-batch
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm: {topologyKey: kubernetes.io/hostname, labelSelector: {matchLabels: {app: mcp-svc}}}
+      containers:
+      - name: app
+        image: 10.167.2.175:30500/szxc/mcp:1.2
+        ports: [{containerPort: 8000}]
+        envFrom: [{secretRef: {name: szxc-secrets}}]
+        resources: {requests: {cpu: 150m, memory: 256Mi}, limits: {cpu: "1", memory: 1Gi}}
+        readinessProbe: {httpGet: {path: /healthz, port: 8000}, periodSeconds: 5}
+        livenessProbe: {httpGet: {path: /healthz, port: 8000}, initialDelaySeconds: 15, periodSeconds: 10}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: mcp-svc, namespace: szxc-prod, labels: {app: mcp-svc, metrics: "true"}}
+spec: {selector: {app: mcp-svc}, ports: [{name: http-metrics, port: 8000, targetPort: 8000}]}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: agent-svc, namespace: szxc-prod, labels: {app: agent-svc}}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: agent-svc}}
+  template:
+    metadata: {labels: {app: agent-svc}}
+    spec:
+      priorityClassName: szxc-batch
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm: {topologyKey: kubernetes.io/hostname, labelSelector: {matchLabels: {app: agent-svc}}}
+      containers:
+      - name: app
+        image: 10.167.2.175:30500/szxc/agent:1.2
+        ports: [{containerPort: 8000}]
+        env:
+        - {name: LITELLM_URL, valueFrom: {secretKeyRef: {name: szxc-secrets, key: LITELLM_URL}}}
+        - {name: LLM_MODEL, value: qwen2.5:14b}
+        resources: {requests: {cpu: 300m, memory: 512Mi}, limits: {cpu: "2", memory: 2Gi}}
+        readinessProbe: {httpGet: {path: /healthz, port: 8000}, periodSeconds: 5}
+        livenessProbe: {httpGet: {path: /healthz, port: 8000}, initialDelaySeconds: 15, periodSeconds: 10}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: agent-svc, namespace: szxc-prod, labels: {app: agent-svc, metrics: "true"}}
+spec:
+  type: NodePort
+  selector: {app: agent-svc}
+  ports: [{name: http-metrics, port: 8000, targetPort: 8000, nodePort: 31201}]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: web, namespace: szxc-prod, labels: {app: web}}
+spec:
+  replicas: 2
+  selector: {matchLabels: {app: web}}
+  template:
+    metadata: {labels: {app: web}}
+    spec:
+      priorityClassName: szxc-normal
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm: {topologyKey: kubernetes.io/hostname, labelSelector: {matchLabels: {app: web}}}
+      containers:
+      - name: app
+        image: 10.167.2.175:30500/szxc/web:1.2
+        ports: [{containerPort: 80}]
+        resources: {requests: {cpu: 100m, memory: 128Mi}, limits: {cpu: 500m, memory: 512Mi}}
+        readinessProbe: {httpGet: {path: /, port: 80}, periodSeconds: 5}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: web-svc, namespace: szxc-prod, labels: {app: web-svc, metrics: "true"}}
+spec:
+  type: NodePort
+  selector: {app: web}
+  ports: [{name: http-metrics, port: 80, targetPort: 80, nodePort: 31202}]

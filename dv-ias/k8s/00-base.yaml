@@ -1,0 +1,131 @@
+# DV-IAS 基础层：命名空间、配额、优先级、网络策略、密钥
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: szxc-dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: szxc-prod
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: szxc-critical
+value: 1000000
+description: DV-IAS 核心链路（网关/IAM/治理）
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: szxc-normal
+value: 800000
+description: DV-IAS 常规业务
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: szxc-batch
+value: 400000
+description: DV-IAS 批处理/AI 推理（资源紧张可让位）
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: szxc-prod-quota
+  namespace: szxc-prod
+spec:
+  hard:
+    requests.cpu: "36"
+    requests.memory: 68Gi
+    limits.cpu: "48"
+    limits.memory: 90Gi
+    persistentvolumeclaims: "10"
+    pods: "80"
+---
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: szxc-prod-limits
+  namespace: szxc-prod
+spec:
+  limits:
+  - type: Container
+    defaultRequest:
+      cpu: 100m
+      memory: 128Mi
+    default:
+      cpu: 500m
+      memory: 512Mi
+    max:
+      cpu: "4"
+      memory: 6Gi
+---
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: szxc-dev-quota
+  namespace: szxc-dev
+spec:
+  hard:
+    requests.cpu: "12"
+    requests.memory: 24Gi
+    pods: "40"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: szxc-secrets
+  namespace: szxc-prod
+type: Opaque
+stringData:
+  DB_HOST_WRITE: tidb.infra.svc.cluster.local:4000
+  DB_HOST_READ: tidb.infra.svc.cluster.local:4000
+  DB_USER: szxc_app
+  DB_USER_RO: szxc_ro
+  DB_PASS: SzxcApp-2026-x7Kq9mVt
+  DB_PASS_RO: SzxcRo-2026-p3Wn8rZc
+  REDIS_URL: szxc-redis-0.szxc-redis-h.infra.svc.cluster.local:6379,szxc-redis-1.szxc-redis-h.infra.svc.cluster.local:6379,szxc-redis-2.szxc-redis-h.infra.svc.cluster.local:6379
+  REDIS_PASS: SzxcRedis-2026-tR5yJ2hL
+  JWT_SECRET: SzxcJwt-2026-bN8wQ4vXzA6sD1fG
+  LITELLM_URL: http://litellm.ai-platform.svc.cluster.local:4000
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: szxc-secrets
+  namespace: szxc-dev
+type: Opaque
+stringData:
+  DB_HOST_WRITE: tidb.infra.svc.cluster.local:4000
+  DB_HOST_READ: tidb.infra.svc.cluster.local:4000
+  DB_USER: szxc_app
+  DB_USER_RO: szxc_ro
+  DB_PASS: SzxcApp-2026-x7Kq9mVt
+  DB_PASS_RO: SzxcRo-2026-p3Wn8rZc
+  REDIS_URL: szxc-redis-0.szxc-redis-h.infra.svc.cluster.local:6379,szxc-redis-1.szxc-redis-h.infra.svc.cluster.local:6379,szxc-redis-2.szxc-redis-h.infra.svc.cluster.local:6379
+  REDIS_PASS: SzxcRedis-2026-tR5yJ2hL
+  JWT_SECRET: SzxcJwt-2026-bN8wQ4vXzA6sD1fG
+  LITELLM_URL: http://litellm.ai-platform.svc.cluster.local:4000
+---
+# 默认拒绝入站；放行同命名空间、监控(Prometheus抓取)、网关
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny-allow-inner
+  namespace: szxc-prod
+spec:
+  podSelector: {}
+  policyTypes: [Ingress]
+  ingress:
+  - from:
+    - podSelector: {}
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: infra

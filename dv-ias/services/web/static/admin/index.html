@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>数字乡村·管理端</title>
+<style>
+:root{--g:#2E7D32;--g2:#43A047;--y:#F9A825;--bg:#F4F8F4;--ink:#1B2B1D;--line:#DCE7DC}
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif}
+body{background:var(--bg);color:var(--ink);font-size:15px}
+.top{background:linear-gradient(135deg,var(--g),var(--g2));color:#fff;padding:14px 24px;display:flex;justify-content:space-between;align-items:center}
+.top h1{font-size:19px}
+.wrap{display:flex;min-height:calc(100vh - 60px)}
+.nav{width:190px;background:#fff;border-right:1px solid var(--line);padding:14px 0}
+.nav div{padding:12px 22px;cursor:pointer;color:#556B57;border-left:3px solid transparent}
+.nav div.on{color:var(--g);border-left-color:var(--g);background:#F1F8F1;font-weight:600}
+.main{flex:1;padding:20px 24px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px}
+.kpi .v{font-size:26px;font-weight:700;color:var(--g)}
+.kpi .k{font-size:13px;color:#7B8B7D;margin-top:4px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:18px}
+.panel h3{color:var(--g);margin-bottom:12px;font-size:16px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{background:#F1F8F1;color:#3B5B3E;text-align:left;padding:9px 10px;font-weight:600}
+td{padding:9px 10px;border-bottom:1px solid #EEF3EE}
+.tag{display:inline-block;font-size:12px;padding:2px 9px;border-radius:10px;background:#E8F5E9;color:var(--g)}
+.tag.w{background:#FFF3E0;color:#E65100}.tag.g{background:#EEE;color:#777}
+.act{border:none;border-radius:8px;padding:5px 12px;margin-right:6px;cursor:pointer;background:var(--g);color:#fff;font-size:13px}
+.act.gray{background:#8BC34A}.act.y{background:var(--y);color:#5D4037}
+input,select,textarea{padding:10px;border:1px solid var(--line);border-radius:9px;font-size:15px;width:100%;margin:4px 0 10px}
+.btn{border:none;border-radius:9px;padding:11px 22px;background:var(--g);color:#fff;cursor:pointer;font-size:15px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#login{max-width:420px;margin:10vh auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px}
+#login h2{color:var(--g);margin-bottom:14px}
+.bar{height:10px;background:#EDF4ED;border-radius:5px;overflow:hidden;margin:4px 0 10px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--g),var(--y))}
+</style>
+</head>
+<body>
+<div id="login">
+  <h2>🔐 数字乡村管理端</h2>
+  <input id="lPhone" placeholder="手机号（县管：13900000001）">
+  <input id="lPass" type="password" placeholder="密码（szxc@2026）">
+  <button class="btn" style="width:100%" onclick="login()">登 录</button>
+  <p style="font-size:13px;color:#7B8B7D;margin-top:10px">村管/网格员：13900000002-13（审核、派单用村管或网格员账号）</p>
+</div>
+<div id="app" style="display:none">
+  <div class="top"><h1>🏛️ 绿野县数字乡村综合治理平台</h1><span id="who" style="font-size:14px"></span></div>
+  <div class="wrap">
+    <div class="nav">
+      <div class="on" onclick="pg('dash',this)">📊 治理看板</div>
+      <div onclick="pg('events',this)">🧾 事件处置</div>
+      <div onclick="pg('pub',this)">📰 公开发布</div>
+      <div onclick="pg('rank',this)">🏆 积分管理</div>
+    </div>
+    <div class="main">
+      <section id="p-dash">
+        <div class="kpis" id="kpis"></div>
+        <div class="panel"><h3>各村事件办理对比</h3><div id="villageBars"></div></div>
+      </section>
+      <section id="p-events" style="display:none">
+        <div class="panel"><h3>事件处置列表 <select id="fState" style="width:140px;display:inline-block;margin-left:12px" onchange="loadEvents()"><option value="">全部状态</option><option value="pending">待受理</option><option value="dispatched">已派单</option><option value="resolved">待审核</option><option value="approved">已办结</option></select></h3>
+        <table><thead><tr><th>事件号</th><th>类型</th><th>村</th><th>状态</th><th>时间</th><th>操作</th></tr></thead><tbody id="evBody"></tbody></table></div>
+      </section>
+      <section id="p-pub" style="display:none">
+        <div class="panel"><h3>发布村务公开</h3>
+          <div class="grid2">
+            <div><label>村</label><select id="pubVillage"></select></div>
+            <div><label>栏目</label><select id="pubColumn"><option>村务</option><option>财务</option><option>党务</option></select></div>
+          </div>
+          <label>标题</label><input id="pubTitle">
+          <label>内容</label><textarea id="pubContent" rows="4"></textarea>
+          <button class="btn" onclick="publish()">发布公示</button></div>
+      </section>
+      <section id="p-rank" style="display:none">
+        <div class="panel"><h3>积分榜 TOP10</h3><table><thead><tr><th>名次</th><th>村民</th><th>积分</th></tr></thead><tbody id="rankBody"></tbody></table></div>
+      </section>
+    </div>
+  </div>
+</div>
+<script>
+const GW=localStorage.getItem('dv_gw')||'http://10.167.2.175:30085';
+const tok=()=>localStorage.getItem('dv_token')||'';
+const stateName={pending:'待受理',accepted:'已受理',dispatched:'已派单',resolved:'待审核',approved:'已办结',rejected:'已退回'};
+const stateCls={pending:'w',accepted:'w',dispatched:'w',resolved:'y',approved:'',rejected:'g'};
+const VILLAGES=[['53060010101','清溪村'],['53060010102','麦香村'],['53060010103','柳林村'],['53060010201','稻花村'],['53060010202','山泉村'],['53060010203','云岭村']];
+const vName=c=>((VILLAGES.find(x=>x[0]===c)||['',''])[1]);
+async function gql(q,v={}){const r=await fetch(GW,{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok()},body:JSON.stringify({query:q,variables:v})});const j=await r.json();if(j.errors)throw new Error(j.errors[0].message);return j.data}
+function pg(p,el){document.querySelectorAll('.nav div').forEach(x=>x.classList.remove('on'));el.classList.add('on');['dash','events','pub','rank'].forEach(s=>document.getElementById('p-'+s).style.display=s===p?'block':'none');if(p==='events')loadEvents();if(p==='rank')loadRank();if(p==='dash')loadDash();}
+async function login(){
+  try{const d=await gql(`mutation($p:String!,$w:String!){login(phone:$p,password:$w){token name roles}}`,{p:lPhone.value.trim(),w:lPass.value});
+    localStorage.setItem('dv_token',d.login.token);localStorage.setItem('dv_name',d.login.name);
+    document.getElementById('login').style.display='none';document.getElementById('app').style.display='';
+    document.getElementById('who').textContent=d.login.name+' · '+(d.login.roles||[]).join('/');
+    VILLAGES.forEach(([c,n])=>pubVillage.insertAdjacentHTML('beforeend',`<option value="${c}">${n}</option>`));
+    loadDash();
+  }catch(e){alert(e.message)}
+}
+async function loadDash(){
+  try{
+    const d=await gql(`{metrics{ name value } events(size:100){ items{ villageCode state } }}`);
+    const m={};d.metrics.forEach(x=>m[x.name]=x.value);
+    kpis.innerHTML=`
+      <div class="kpi"><div class="v">${m.villager_total||0}</div><div class="k">实名村民</div></div>
+      <div class="kpi"><div class="v">${m.village_total||0}</div><div class="k">覆盖村</div></div>
+      <div class="kpi"><div class="v">${m.event_total||0}</div><div class="k">事件总数</div></div>
+      <div class="kpi"><div class="v">${m.event_done_rate||0}%</div><div class="k">办结率</div></div>
+      <div class="kpi"><div class="v">${m.event_open||0}</div><div class="k">在办</div></div>
+      <div class="kpi"><div class="v">${m.points_total||0}</div><div class="k">累计积分</div></div>`;
+    const byV={};d.events.items.forEach(e=>{byV[e.villageCode]=byV[e.villageCode]||{t:0,d:0};byV[e.villageCode].t++;if(e.state==='approved')byV[e.villageCode].d++;});
+    const max=Math.max(1,...Object.values(byV).map(x=>x.t));
+    villageBars.innerHTML=Object.entries(byV).map(([c,x])=>`<div><div style="display:flex;justify-content:space-between;font-size:14px"><span>${vName(c)}</span><span>${x.d}/${x.t} 件办结</span></div><div class="bar"><i style="width:${x.t*100/max}%"></i></div></div>`).join('');
+  }catch(e){alert('看板加载失败：'+e.message)}
+}
+async function loadEvents(){
+  const st=fState.value;
+  const d=await gql(`query($s:String){events(state:$s,size:50){ items{ id sn type villageCode state createdAt description } }}`,{s:st||null});
+  evBody.innerHTML=d.events.items.map(e=>{
+    let act='';
+    if(e.state==='pending')act=`<button class="act" onclick="tr('acceptEvent','${e.id}')">受理</button>`;
+    if(e.state==='accepted')act=`<button class="act gray" onclick="tr('dispatchEvent','${e.id}')">派单</button>`;
+    if(e.state==='dispatched')act=`<button class="act gray" onclick="tr('resolveEvent','${e.id}')">处置完成</button>`;
+    if(e.state==='resolved')act=`<button class="act y" onclick="tr('approveEvent','${e.id}')">审核通过</button>`;
+    return `<tr><td>${e.sn}</td><td>${e.type}</td><td>${vName(e.villageCode)}</td><td><span class="tag ${stateCls[e.state]||''}">${stateName[e.state]||e.state}</span></td><td>${(e.createdAt||'').slice(5,16)}</td><td>${act||'—'}</td></tr>`}).join('');
+}
+async function tr(mut,id){
+  const q={acceptEvent:'mutation($i:ID!){acceptEvent(id:$i){id state}}',dispatchEvent:'mutation($i:ID!){dispatchEvent(id:$i){id state}}',
+           resolveEvent:'mutation($i:ID!){resolveEvent(id:$i){id state}}',approveEvent:'mutation($i:ID!){approveEvent(id:$i){id state}}'}[mut];
+  try{await gql(q,{i:id});loadEvents();loadDash()}catch(e){alert(e.message)}
+}
+async function publish(){
+  try{await gql(`mutation($v:String!,$c:String!,$t:String!,$x:String!){publishPublication(villageCode:$v,column:$c,title:$t,content:$x){id}}`,
+    {v:pubVillage.value,c:pubColumn.value,t:pubTitle.value,x:pubContent.value});
+    alert('发布成功，村民端即刻可见');pubTitle.value='';pubContent.value='';
+  }catch(e){alert(e.message)}
+}
+async function loadRank(){
+  const d=await gql(`{leaderboard{ partyId balance }}`);
+  rankBody.innerHTML=d.leaderboard.map((x,i)=>`<tr><td>${i+1}</td><td>村民 #${x.partyId}</td><td><b>${x.balance}</b> 分</td></tr>`).join('');
+}
+</script>
+</body>
+</html>

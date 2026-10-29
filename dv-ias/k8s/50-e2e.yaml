@@ -1,0 +1,25 @@
+# DV-IAS 无头浏览器 E2E 功能测试 Pod（Playwright + Chromium）
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: e2e-scr, namespace: szxc-prod}
+data:
+  e2e_browser.py: |
+    # 详见 test/e2e_browser.py（由 scripts/run-e2e.sh 同步至此）
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: e2e-run, namespace: szxc-prod}
+spec:
+  restartPolicy: Never
+  priorityClassName: szxc-normal
+  containers:
+  - name: e2e
+    image: mcr.microsoft.com/playwright/python:v1.45.0
+    command: ["sh", "-c", "pip install -q playwright==1.45.0 2>/dev/null; python /scr/e2e_browser.py"]
+    env:
+    - {name: PLAYWRIGHT_BROWSERS_PATH, value: /ms-playwright}
+    volumeMounts: [{name: scr, mountPath: /scr}]
+    resources: {requests: {cpu: 500m, memory: 1Gi}, limits: {cpu: "2", memory: 2Gi}}
+  volumes:
+  - name: scr
+    configMap: {name: e2e-scr}

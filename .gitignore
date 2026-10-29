@@ -1,0 +1,9 @@
+# 密钥与敏感文件（教学演示 Secret 已在 00-base.yaml 中标注为演示凭据）
+*.key
+*.pem
+.env
+node_modules/
+__pycache__/
+*.pyc
+~$*
+course/          # 课程独立仓库：tianqiongenze/dv-ias-course

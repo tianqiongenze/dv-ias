@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>数字乡村·村民端</title>
+<style>
+:root{--g:#2E7D32;--g2:#43A047;--y:#F9A825;--bg:#FAFDF7;--ink:#1B2B1D;--line:#DCE7DC;--red:#C62828}
+*{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,"PingFang SC","HarmonyOS Sans","Microsoft YaHei",sans-serif}
+body{background:var(--bg);color:var(--ink);font-size:17px;padding-bottom:70px;max-width:640px;margin:0 auto}
+.hd{background:linear-gradient(135deg,var(--g),var(--g2));color:#fff;padding:18px 16px 14px;position:sticky;top:0;z-index:5}
+.hd h1{font-size:21px;display:flex;align-items:center;gap:8px}
+.hd .sub{font-size:13px;opacity:.85;margin-top:4px}
+.tabs{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);display:flex;z-index:5;max-width:640px;margin:0 auto}
+.tabs div{flex:1;text-align:center;padding:8px 0 10px;color:#7B8B7D;font-size:12px;cursor:pointer}
+.tabs div.on{color:var(--g);font-weight:600}
+.tabs .ic{font-size:22px;display:block;margin-bottom:2px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin:12px;box-shadow:0 1px 3px rgba(46,125,50,.06)}
+.card h3{font-size:16px;color:var(--g);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.mrow{padding:11px 0;border-bottom:1px dashed var(--line)}
+.mrow:last-child{border:none}
+.mrow b{font-size:16px}
+.tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:10px;background:#E8F5E9;color:var(--g);margin-right:6px}
+.tag.fin{background:#FFF3E0;color:#E65100}
+.btn{display:block;width:100%;padding:14px;border:none;border-radius:12px;background:var(--g);color:#fff;font-size:17px;cursor:pointer;margin-top:10px}
+.btn:active{background:#1B5E20}.btn.y{background:var(--y);color:#5D4037}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;font-size:17px;background:#fff;margin:6px 0}
+.mets{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center}
+.mets .m{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 4px}
+.mets .v{font-size:22px;font-weight:700;color:var(--g)}
+.mets .k{font-size:12px;color:#7B8B7D;margin-top:3px}
+.lead{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dashed var(--line);font-size:15px}
+.lead span:first-child{color:#556B57}
+.mask{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9;display:none;align-items:flex-end}
+.mask.on{display:flex}
+.sheet{background:#fff;width:100%;max-width:640px;margin:0 auto;border-radius:18px 18px 0 0;padding:18px 16px 26px;max-height:85vh;overflow:auto}
+.sheet h3{margin-bottom:6px}
+.chat{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;min-height:220px}
+.msg{max-width:86%;padding:10px 12px;border-radius:14px;font-size:16px;line-height:1.55;white-space:pre-wrap}
+.msg.me{align-self:flex-end;background:var(--g);color:#fff}
+.msg.bot{align-self:flex-start;background:#fff;border:1px solid var(--line)}
+.msg .ref{display:block;font-size:12px;color:#8CA98E;margin-top:6px}
+.sug{display:flex;flex-wrap:wrap;gap:8px}
+.sug button{border:1px solid var(--g);color:var(--g);background:#fff;border-radius:16px;padding:6px 12px;font-size:14px}
+.big{font-size:19px}
+.ok-toast{position:fixed;top:20%;left:50%;transform:translateX(-50%);background:rgba(27,43,29,.92);color:#fff;padding:12px 22px;border-radius:10px;font-size:15px;display:none;z-index:99}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="hd"><h1>🌾 绿野县·数字乡村</h1><div class="sub" id="who">让乡村生活更美好</div></div>
+
+<!-- 首页 -->
+<section id="p-home">
+  <div class="card"><h3>📊 乡村数字概览</h3><div class="mets" id="mets"></div></div>
+  <div class="card"><h3>📰 村务公开 <select id="selVillage" style="width:auto;padding:4px 8px;font-size:14px;margin:0"><option value="">全部村</option></select></h3><div id="pubs"><div class="mrow">加载中…</div></div></div>
+</section>
+
+<!-- 随手拍 -->
+<section id="p-report" class="hidden">
+  <div class="card">
+    <h3>📷 随手拍·上报治理事件</h3>
+    <p style="font-size:14px;color:#7B8B7D;margin-bottom:6px">拍下身边问题（垃圾堆放、道路积水、路灯故障等），办结后可获得积分奖励</p>
+    <select id="rType"><option value="environment">环境卫生（+20分）</option><option value="safety">安全隐患（+30分）</option><option value="public">公共设施（+10分）</option><option value="other">其他（+10分）</option></select>
+    <select id="rVillage"></select>
+    <textarea id="rDesc" rows="3" placeholder="简单描述问题（选填）"></textarea>
+    <button class="btn" onclick="report()">提交上报</button>
+  </div>
+  <div class="card"><h3>🧾 我的上报记录</h3><div id="myEvents"><div class="mrow">登录后查看</div></div></div>
+</section>
+
+<!-- 问答 -->
+<section id="p-chat" class="hidden">
+  <div class="card" style="min-height:70vh">
+    <h3>🤖 村村通·智能助手</h3>
+    <div class="chat" id="chatBox"><div class="msg bot">您好！我是村村通，农技、政策、办事、积分问题都可以问我👇</div></div>
+    <div class="sug" style="margin-bottom:10px">
+      <button onclick="ask('水稻稻瘟病怎么防治？')">水稻稻瘟病</button>
+      <button onclick="ask('低保怎么申请？')">低保申请</button>
+      <button onclick="ask('积分怎么获得和兑换？')">积分规则</button>
+      <button onclick="ask('证明怎么开？')">证明开具</button>
+    </div>
+    <div style="display:flex;gap:8px"><input id="qInput" placeholder="输入您的问题…" onkeydown="if(event.key==='Enter')ask()"><button class="btn" style="width:auto;margin:0;padding:12px 18px" onclick="ask()">发送</button></div>
+  </div>
+</section>
+
+<!-- 我的 -->
+<section id="p-me" class="hidden">
+  <div class="card" id="loginCard">
+    <h3>👤 村民登录</h3>
+    <input id="lPhone" placeholder="手机号（体验号：13800000001 / 密码 szxc@2026）">
+    <input id="lPass" type="password" placeholder="密码">
+    <button class="btn" onclick="login()">登录</button>
+    <p style="font-size:13px;color:#7B8B7D;margin-top:8px">演示账号：13800000001-30 为村民；13900000001 县管理员；13900000002-13 村管理员/网格员。密码均为 szxc@2026</p>
+  </div>
+  <div id="meCard" class="hidden">
+    <div class="card"><h3>💚 我的积分 <button class="btn y" style="width:auto;margin:0;padding:6px 14px;font-size:14px" onclick="logout()">退出</button></h3>
+      <div class="big" id="myBalance" style="font-size:34px;color:var(--g);font-weight:700">--</div>
+      <div id="myLedger"></div></div>
+    <div class="card"><h3>🏆 积分榜</h3><div id="ranks"></div></div>
+  </div>
+</section>
+
+<div class="tabs">
+  <div class="on" onclick="tab('home',this)"><span class="ic">🏠</span>首页</div>
+  <div onclick="tab('report',this)"><span class="ic">📷</span>随手拍</div>
+  <div onclick="tab('chat',this)"><span class="ic">🤖</span>问答</div>
+  <div onclick="tab('me',this)"><span class="ic">👤</span>我的</div>
+</div>
+
+<div class="ok-toast" id="toast"></div>
+<script>
+const GW=localStorage.getItem('dv_gw')||'http://10.167.2.175:30085';
+const AG=localStorage.getItem('dv_agent')||'http://10.167.2.175:31201';
+const VILLAGES=[['53060010101','清溪村'],['53060010102','麦香村'],['53060010103','柳林村'],['53060010201','稻花村'],['53060010202','山泉村'],['53060010203','云岭村']];
+const tok=()=>localStorage.getItem('dv_token')||'';
+const stateName={pending:'待受理',accepted:'已受理',dispatched:'已派单',resolved:'待审核',approved:'已办结',rejected:'已退回'};
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
+function tab(p,el){document.querySelectorAll('.tabs div').forEach(x=>x.classList.remove('on'));el.classList.add('on');['home','report','chat','me'].forEach(s=>document.getElementById('p-'+s).classList.toggle('hidden',s!==p));if(p==='chat')scrollChat()}
+async function gql(query,variables={}){
+  const r=await fetch(GW,{method:'POST',headers:{'Content-Type':'application/json',...(tok()?{Authorization:'Bearer '+tok()}:{})},body:JSON.stringify({query,variables})});
+  const j=await r.json();
+  if(j.errors)throw new Error(j.errors[0].message);
+  return j.data;
+}
+async function loadHome(){
+  try{
+    const d=await gql(`{metrics{ name value unit } publications(size:8){ items{ id title column villageCode publishedAt } }}`);
+    const m={};d.metrics.forEach(x=>m[x.name]=x.value+x.unit);
+    document.getElementById('mets').innerHTML=`
+      <div class="m"><div class="v">${m.villager_total||0}</div><div class="k">实名村民</div></div>
+      <div class="m"><div class="v">${m.event_total||0}</div><div class="k">治理事件</div></div>
+      <div class="m"><div class="v">${m.event_done_rate||0}</div><div class="k">办结率</div></div>
+      <div class="m"><div class="v">${m.publication_total||0}</div><div class="k">公开信息</div></div>
+      <div class="m"><div class="v">${m.points_total||0}</div><div class="k">累计积分</div></div>
+      <div class="m"><div class="v">${m.event_open||0}</div><div class="k">办理中</div></div>`;
+    renderPubs(d.publications.items);
+  }catch(e){document.getElementById('pubs').innerHTML='<div class="mrow">加载失败：'+e.message+'</div>'}
+}
+function renderPubs(items){
+  document.getElementById('pubs').innerHTML=items.length?items.map(p=>{
+    const v=(VILLAGES.find(x=>x[0]===p.villageCode)||['',''])[1];
+    return `<div class="mrow"><span class="tag ${p.column==='财务'?'fin':''}">${p.column}</span><b>${p.title}</b><div style="font-size:13px;color:#7B8B7D;margin-top:3px">${v} · ${(p.publishedAt||'').slice(0,10)}</div></div>`}).join(''):'<div class="mrow">暂无公开信息</div>';
+}
+document.getElementById('selVillage').onchange=async e=>{
+  const d=await gql(`{publications(villageCode:"${e.target.value}",size:10){items{title column villageCode publishedAt}}}`);
+  renderPubs(d.publications.items);
+};
+VILLAGES.forEach(([c,n])=>{
+  document.getElementById('selVillage').insertAdjacentHTML('beforeend',`<option value="${c}">${n}</option>`);
+  document.getElementById('rVillage').insertAdjacentHTML('beforeend',`<option value="${c}">${n}</option>`);
+});
+async function report(){
+  if(!tok()){toast('请先在「我的」登录');return tab('me',document.querySelectorAll('.tabs div')[3])}
+  try{
+    const d=await gql(`mutation($t:String!,$v:String!,$d:String){reportEvent(type:$t,villageCode:$v,desc:$d){ id sn state }}`,
+      {t:document.getElementById('rType').value,v:document.getElementById('rVillage').value,d:document.getElementById('rDesc').value});
+    toast('上报成功！事件号 '+d.reportEvent.sn);loadMyEvents();
+  }catch(e){toast(e.message)}
+}
+async function loadMyEvents(){
+  if(!tok())return;
+  try{
+    const d=await gql(`{myEvents{ items{ sn type state createdAt } }}`);
+    document.getElementById('myEvents').innerHTML=d.myEvents.items.map(e=>`<div class="mrow"><b>${e.sn}</b> <span class="tag">${stateName[e.state]||e.state}</span><div style="font-size:13px;color:#7B8B7D">${(e.createdAt||'').slice(0,16)}</div></div>`).join('')||'<div class="mrow">暂无上报</div>';
+  }catch(e){document.getElementById('myEvents').innerHTML='<div class="mrow">'+e.message+'</div>'}
+}
+async function login(){
+  try{
+    const d=await gql(`mutation($p:String!,$w:String!){login(phone:$p,password:$w){ token name roles partyId }}`,
+      {p:document.getElementById('lPhone').value.trim(),w:document.getElementById('lPass').value});
+    localStorage.setItem('dv_token',d.login.token);
+    localStorage.setItem('dv_name',d.login.name);
+    afterLogin();toast('欢迎，'+d.login.name);
+  }catch(e){toast(e.message)}
+}
+function logout(){localStorage.removeItem('dv_token');location.reload()}
+async function afterLogin(){
+  document.getElementById('loginCard').classList.add('hidden');
+  document.getElementById('meCard').classList.remove('hidden');
+  document.getElementById('who').textContent='欢迎，'+(localStorage.getItem('dv_name')||'');
+  try{
+    const d=await gql(`{me{ id name } leaderboard{ partyId balance }}`);
+    const me=await gql(`{myPoints{ balance ledger{ change reason createdAt } }}`);
+    document.getElementById('myBalance').textContent=me.myPoints.balance+' 分';
+    document.getElementById('myLedger').innerHTML=me.myPoints.ledger.slice(0,5).map(l=>`<div class="lead"><span>${l.reason||''}</span><b style="color:var(--g)">+${l.change}</b></div>`).join('')||'<div class="lead"><span>暂无流水</span><span></span></div>';
+    const names={};d.leaderboard.forEach(x=>names[x.partyId]=x.balance);
+    document.getElementById('ranks').innerHTML=d.leaderboard.slice(0,8).map((x,i)=>`<div class="lead"><span>第${i+1}名 · 村民${x.partyId}</span><b>${x.balance}分</b></div>`).join('');
+  }catch(e){}
+  loadMyEvents();
+}
+async function ask(q){
+  q=q||document.getElementById('qInput').value.trim();if(!q)return;
+  document.getElementById('qInput').value='';
+  const box=document.getElementById('chatBox');
+  box.insertAdjacentHTML('beforeend',`<div class="msg me">${esc(q)}</div>`);
+  box.insertAdjacentHTML('beforeend',`<div class="msg bot" id="thinking">思考中…</div>`);
+  scrollChat();
+  try{
+    const r=await fetch(AG+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:q})});
+    const j=await r.json();
+    document.getElementById('thinking').remove();
+    box.insertAdjacentHTML('beforeend',`<div class="msg bot">${esc(j.answer)}${j.refs.length?`<span class="ref">依据：${j.refs.map(x=>'['+x.id+']'+x.q).join('；')}（引擎：${j.engine}）</span>`:''}</div>`);
+  }catch(e){document.getElementById('thinking').textContent='服务暂不可用，请稍后再试'}
+  scrollChat();
+}
+function esc(s){return (s||'').replace(/</g,'&lt;')}
+function scrollChat(){const b=document.getElementById('chatBox');b.scrollTop=b.scrollHeight}
+if(tok())afterLogin();
+loadHome();
+</script>
+</body>
+</html>

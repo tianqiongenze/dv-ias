@@ -1,0 +1,23 @@
+# DV-IAS Locust 性能测试 Pod（headless 模式）
+apiVersion: v1
+kind: ConfigMap
+metadata: {name: locustf, namespace: szxc-prod}
+data:
+  locustfile.py: |
+    # 详见 perf/locustfile.py（由 scripts/run-locust.sh 同步）
+---
+apiVersion: v1
+kind: Pod
+metadata: {name: locust-run, namespace: szxc-prod}
+spec:
+  restartPolicy: Never
+  priorityClassName: szxc-normal
+  containers:
+  - name: loc
+    image: 10.167.2.175:30500/perf/locust
+    command: ["sh", "-c", "cd /loc && locust -f locustfile.py --headless -u 150 -r 20 -t 3m --host http://gw-svc.szxc-prod.svc.cluster.local:8080/ --only-summary"]
+    volumeMounts: [{name: scr, mountPath: /loc}]
+    resources: {requests: {cpu: 500m, memory: 512Mi}, limits: {cpu: "2", memory: 1Gi}}
+  volumes:
+  - name: scr
+    configMap: {name: locustf}

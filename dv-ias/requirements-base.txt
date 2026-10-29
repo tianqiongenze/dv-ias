@@ -1,0 +1,13 @@
+fastapi==0.115.*
+pydantic==2.10.6
+graphql-core==3.2.5
+uvicorn[standard]==0.34.*
+strawberry-graphql[fastapi]==0.254.*
+pymysql==1.1.*
+redis==5.2.*
+PyJWT==2.10.*
+prometheus-client==0.21.*
+httpx==0.28.*
+cryptography==44.* 
+pytest==8.*
+pytest-bdd==8.*

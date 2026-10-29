@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>数字乡村·指挥大屏</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:"PingFang SC","Microsoft YaHei",sans-serif}
+body{background:radial-gradient(1200px 600px at 70% -10%,#0E2A16,#07130B);color:#DFEFDF;min-height:100vh;padding:22px 28px;overflow-x:hidden}
+h1{font-size:26px;letter-spacing:4px;text-align:center;background:linear-gradient(90deg,#7BD87F,#F9D24B);-webkit-background-clip:text;background-clip:text;color:transparent}
+.clock{text-align:center;color:#6FA873;font-size:14px;margin:4px 0 18px}
+.row{display:grid;grid-template-columns:repeat(6,1fr);gap:16px}
+.kpi{border:1px solid #1C4226;background:rgba(20,50,30,.45);border-radius:12px;padding:18px 10px;text-align:center}
+.kpi b{font-size:34px;color:#8FE396;font-family:Consolas,monospace}
+.kpi.hot b{color:#F9D24B}
+.kpi span{display:block;font-size:13px;color:#7BA87F;margin-top:6px}
+.panel{border:1px solid #1C4226;background:rgba(20,50,30,.45);border-radius:12px;padding:16px;margin-top:16px}
+.panel h3{font-size:15px;color:#9FD8A4;margin-bottom:12px;letter-spacing:2px}
+.cols{display:grid;grid-template-columns:1.2fr 1fr;gap:16px}
+.bar{height:14px;background:#0E2415;border-radius:7px;overflow:hidden;margin:6px 0 12px;position:relative}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#2E7D32,#8FE396)}
+.bar b{position:absolute;right:6px;top:-2px;font-size:12px;color:#CFEBCF}
+.tick{height:220px;overflow:hidden}
+.tick div{padding:8px 4px;border-bottom:1px dashed #1C4226;font-size:14px;display:flex;justify-content:space-between;color:#BFE3C1}
+.tag{padding:1px 10px;border-radius:10px;background:#1C4226;color:#9FD8A4;font-size:12px}
+.foot{margin-top:16px;color:#4F7A54;font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<h1>🌾 绿野县数字乡村指挥中枢</h1>
+<div class="clock" id="clock"></div>
+<div class="row" id="kpis"></div>
+<div class="cols">
+  <div class="panel"><h3>各村治理事件办结态势</h3><div id="vbars"></div></div>
+  <div class="panel"><h3>最新事件流转</h3><div class="tick" id="tick"></div></div>
+</div>
+<div class="foot">数据时点 <span id="ts">--</span> · 5s 自动刷新 · DV-IAS 数据中台（读模型缓存60s）</div>
+<script>
+const GW=localStorage.getItem('dv_gw')||'http://10.167.2.175:30085';
+const VN={53060010101:'清溪村',53060010102:'麦香村',53060010103:'柳林村',53060010201:'稻花村',53060010202:'山泉村',53060010203:'云岭村'};
+const SN={pending:'待受理',accepted:'已受理',dispatched:'已派单',resolved:'待审核',approved:'已办结',rejected:'退回'};
+setInterval(()=>document.getElementById('clock').textContent=new Date().toLocaleString('zh-CN'),500);
+async function load(){
+  try{
+    const r=await fetch(GW,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:`{metrics{name value unit} events(size:120){items{sn type villageCode state createdAt}}}`})});
+    const d=(await r.json()).data;
+    const m={};d.metrics.forEach(x=>m[x.name]=x.value);
+    document.getElementById('kpis').innerHTML=`
+      <div class="kpi"><b>${m.villager_total}</b><span>实名村民</span></div>
+      <div class="kpi"><b>${m.village_total}</b><span>覆盖村</span></div>
+      <div class="kpi hot"><b>${m.event_total}</b><span>事件总数</span></div>
+      <div class="kpi hot"><b>${m.event_done_rate}%</b><span>办结率</span></div>
+      <div class="kpi"><b>${m.points_total}</b><span>累计积分</span></div>
+      <div class="kpi"><b>${m.event_open}</b><span>在办事件</span></div>`;
+    const byV={};d.events.items.forEach(e=>{byV[e.villageCode]=byV[e.villageCode]||[0,0];byV[e.villageCode][0]++;if(e.state==='approved')byV[e.villageCode][1]++;});
+    const max=Math.max(1,...Object.values(byV).map(x=>x[0]));
+    document.getElementById('vbars').innerHTML=Object.entries(byV).map(([c,[t,done]])=>
+      `<div><div style="display:flex;justify-content:space-between;font-size:13px"><span>${VN[c]||c}</span><span>${done}/${t}</span></div><div class="bar"><i style="width:${t*100/max}%"></i><b>${Math.round(done*100/t)}%</b></div></div>`).join('');
+    document.getElementById('tick').innerHTML=d.events.items.slice(0,9).map(e=>
+      `<div><span>${e.sn} · ${VN[e.villageCode]||''} · ${e.type}</span><span class="tag">${SN[e.state]||e.state}</span></div>`).join('');
+    document.getElementById('ts').textContent=new Date().toLocaleTimeString('zh-CN');
+  }catch(e){document.getElementById('ts').textContent='连接中… '+e.message}
+}
+load();setInterval(load,5000);
+</script>
+</body>
+</html>
