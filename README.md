@@ -54,3 +54,7 @@ bash dv-ias/scripts/run-locust.sh    # Locust 150 用户
 - 接口：`docs/06-GraphQL接口与集成设计.md`
 - 部署运维：`docs/10-部署与运维方案-K8s.md`
 - 测试：`docs/15-融合测试报告.md`、`docs/16-局域网人工测试操作指南.md`
+
+## 姊妹项目
+
+- HSF 高标准农田信息平台（独立立项，复用本工程体系与验收标准）：https://github.com/tianqiongenze/hsf-ias
