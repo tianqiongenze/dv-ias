@@ -28,6 +28,6 @@ def test_sm4_roundtrip_and_mask():
 
 def test_jwt_roundtrip():
     tok = issue_token(7, "张三", ["villager"])
-    payload = jwt.decode(tok, os.environ.get("JWT_SECRET", "SzxcJwt-2026-bN8wQ4vXzA6sD1fG"),
+    payload = jwt.decode(tok, os.environ.get("JWT_SECRET", "CHANGE_ME_SET_JWT_SECRET_VIA_ENV"),
                          algorithms=["HS256"])
     assert payload["sub"] == "7" and payload["roles"] == ["villager"]  # PyJWT≥2.10 要求 sub 为字符串

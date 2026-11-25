@@ -12,7 +12,7 @@ from . import db
 REQ_TOTAL = Counter("szxc_http_requests_total", "HTTP请求总数", ["svc", "path", "code"])
 REQ_LATENCY = Histogram("szxc_http_request_seconds", "HTTP延迟", ["svc", "path"])
 
-JWT_SECRET = os.environ.get("JWT_SECRET", "SzxcJwt-2026-bN8wQ4vXzA6sD1fG")
+JWT_SECRET = os.environ.get("JWT_SECRET", "CHANGE_ME_SET_JWT_SECRET_VIA_ENV")
 
 
 def create_app(svc_name: str, startup=None) -> FastAPI:

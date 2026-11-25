@@ -13,7 +13,7 @@ const SUBGRAPHS = (process.env.SUBGRAPHS || [
   'data=http://data-svc.szxc-prod.svc.cluster.local:8085/graphql',
 ].join(',')).split(',').map(s => { const [name, url] = s.split('='); return { name, url }; });
 
-const JWT_SECRET = process.env.JWT_SECRET || 'SzxcJwt-2026-bN8wQ4vXzA6sD1fG';
+const JWT_SECRET = process.env.JWT_SECRET || 'CHANGE_ME_SET_JWT_SECRET_VIA_ENV';
 
 class AuthedDataSource extends RemoteGraphQLDataSource {
   willSendRequest({ request, context }) {

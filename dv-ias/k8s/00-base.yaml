@@ -88,7 +88,7 @@ stringData:
   DB_PASS_RO: SzxcRo-2026-p3Wn8rZc
   REDIS_URL: szxc-redis-0.szxc-redis-h.infra.svc.cluster.local:6379,szxc-redis-1.szxc-redis-h.infra.svc.cluster.local:6379,szxc-redis-2.szxc-redis-h.infra.svc.cluster.local:6379
   REDIS_PASS: SzxcRedis-2026-tR5yJ2hL
-  JWT_SECRET: SzxcJwt-2026-bN8wQ4vXzA6sD1fG
+  JWT_SECRET: CHANGE_ME_SET_JWT_SECRET_VIA_ENV
   LITELLM_URL: http://litellm.ai-platform.svc.cluster.local:4000
 ---
 apiVersion: v1
@@ -106,7 +106,7 @@ stringData:
   DB_PASS_RO: SzxcRo-2026-p3Wn8rZc
   REDIS_URL: szxc-redis-0.szxc-redis-h.infra.svc.cluster.local:6379,szxc-redis-1.szxc-redis-h.infra.svc.cluster.local:6379,szxc-redis-2.szxc-redis-h.infra.svc.cluster.local:6379
   REDIS_PASS: SzxcRedis-2026-tR5yJ2hL
-  JWT_SECRET: SzxcJwt-2026-bN8wQ4vXzA6sD1fG
+  JWT_SECRET: CHANGE_ME_SET_JWT_SECRET_VIA_ENV
   LITELLM_URL: http://litellm.ai-platform.svc.cluster.local:4000
 ---
 # 默认拒绝入站；放行同命名空间、监控(Prometheus抓取)、网关
